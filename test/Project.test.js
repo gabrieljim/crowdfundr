@@ -56,6 +56,23 @@ describe("Project Contract", () => {
     describe("Awarding tiers", () => {
       it("Awards gold tier", async () => {
         await project.contribute({ value: parseEther("1") });
+
+        const tier = await project.getUserTier();
+        expect(tier).to.be.equal("3");
+      });
+
+      it("Awards silver tier", async () => {
+        await project.contribute({ value: parseEther("0.8") });
+
+        const tier = await project.getUserTier();
+        expect(tier).to.be.equal("2");
+      });
+
+      it("Awards gold tier", async () => {
+        await project.contribute({ value: parseEther("0.2") });
+
+        const tier = await project.getUserTier();
+        expect(tier).to.be.equal("1");
       });
     });
   });

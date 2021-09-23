@@ -7,18 +7,22 @@ contract Project {
     uint256 public fundingGoal;
     uint256 public totalFunding;
     uint256 public idCounter = 3;
+    uint256 public deadline;
     address public owner;
     uint256 public constant MINIMUM_CONTRIBUTION = 0.01 ether;
     bool public projectFailed;
     bool public fundingGoalReached;
 
     mapping(address => uint256) public contributions;
-    mapping(uint256 => address) tiers;
+
+    mapping(uint256 => address) public ownerOf;
+    mapping(address => uint256) public tierOf;
 
     constructor(address newOwner, uint256 startingFundingGoal) {
         require(newOwner != address(0));
         owner = newOwner;
         fundingGoal = startingFundingGoal;
+        deadline = block.timestamp + 30 days;
     }
 
     modifier onlyOwner() {
@@ -28,19 +32,22 @@ contract Project {
 
     function _awardTier(uint256 amountContributed) internal {
         uint8 tierType = 1;
+        idCounter++;
 
         if (amountContributed >= 1 ether) {
             tierType = 3;
         } else if (amountContributed >= 0.25 ether) {
             tierType = 2;
-        } 
+        }
 
         uint256 id = (idCounter << 2) | tierType;
-        tiers[id] = msg.sender;
+        ownerOf[id] = msg.sender;
+        tierOf[msg.sender] = id;
     }
 
-    function getAwardTier(uint256 id) public pure returns (uint256) {
-        uint256 awardTier = id % 4;
+    function getUserTier() external view returns (uint256) {
+        uint256 userTier = tierOf[msg.sender];
+        uint256 awardTier = userTier % 4;
         return awardTier;
     }
 
