@@ -52,10 +52,16 @@ describe("Project Contract", () => {
         project.contribute({ value: parseEther("0.001") })
       ).to.be.revertedWith("Value must be at least 0.01 ETH.");
     });
+
+    describe("Awarding tiers", () => {
+      it("Awards gold tier", async () => {
+        await project.contribute({ value: parseEther("1") });
+      });
+    });
   });
 
   describe("Project succesful", async () => {
-    it("Reverts if funding goal reached", async () => {
+    it("Reverts contribution if funding goal reached", async () => {
       await project.contribute({ value: parseEther("1.5") });
 
       await expect(
@@ -72,12 +78,28 @@ describe("Project Contract", () => {
       expect(currentFunding).to.be.equal(parseEther("2"));
     });
 
+    it("Reverts owner withdrawal if project still going", async () => {
+      await project.contribute({ value: parseEther("0.4") });
+      await expect(
+        project.withdrawContributedFundsOwner(parseEther("0.1"))
+      ).to.be.revertedWith("Funding goal not reached yet.");
+    });
+
     it("Allows owner to withdraw an amount", async () => {
       await project.connect(addr1).contribute({ value: parseEther("1.4") });
       await project.connect(addr2).contribute({ value: parseEther("1") });
       await expect(
         await project.withdrawContributedFundsOwner(parseEther("1"))
       ).to.changeEtherBalance(owner, parseEther("1"));
+    });
+
+    it("Reverts if owner tries to withdraw more than available", async () => {
+      await project.connect(addr1).contribute({ value: parseEther("1.4") });
+      await project.connect(addr2).contribute({ value: parseEther("1") });
+      await project.withdrawContributedFundsOwner(parseEther("2"));
+      await expect(
+        project.withdrawContributedFundsOwner(parseEther("1"))
+      ).to.be.revertedWith("Not enough funds available");
     });
   });
 
@@ -89,6 +111,13 @@ describe("Project Contract", () => {
       ).to.be.revertedWith("Contribution is not allowed anymore.");
     });
 
+    it("Reverts withdrawal if project still going", async () => {
+      await project.contribute({ value: parseEther("0.4") });
+      await expect(project.withdrawContribution()).to.be.revertedWith(
+        "Project still going."
+      );
+    });
+
     it("Allows contributors to withdraw their funds", async () => {
       await project.contribute({ value: parseEther("0.4") });
       await project.cancelProject();
@@ -96,6 +125,14 @@ describe("Project Contract", () => {
         owner,
         parseEther("0.4")
       );
+    });
+
+    it("Reverts if no funds are available", async () => {
+      await project.contribute({ value: parseEther("1") });
+      await project.cancelProject();
+      await expect(
+        project.connect(addr1).withdrawContribution()
+      ).to.be.revertedWith("No available funds");
     });
   });
 });

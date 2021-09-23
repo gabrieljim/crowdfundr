@@ -6,13 +6,14 @@ import "hardhat/console.sol";
 contract Project {
     uint256 public fundingGoal;
     uint256 public totalFunding;
+    uint256 public idCounter = 3;
     address public owner;
-    uint256 public constant minimumContribution = 0.01 ether;
+    uint256 public constant MINIMUM_CONTRIBUTION = 0.01 ether;
     bool public projectFailed;
     bool public fundingGoalReached;
 
     mapping(address => uint256) public contributions;
-    mapping(address => uint256) tiers;
+    mapping(uint256 => address) tiers;
 
     constructor(address newOwner, uint256 startingFundingGoal) {
         require(newOwner != address(0));
@@ -25,19 +26,38 @@ contract Project {
         _;
     }
 
+    function _awardTier(uint256 amountContributed) internal {
+        uint8 tierType = 1;
+
+        if (amountContributed >= 1 ether) {
+            tierType = 3;
+        } else if (amountContributed >= 0.25 ether) {
+            tierType = 2;
+        } 
+
+        uint256 id = (idCounter << 2) | tierType;
+        tiers[id] = msg.sender;
+    }
+
+    function getAwardTier(uint256 id) public pure returns (uint256) {
+        uint256 awardTier = id % 4;
+        return awardTier;
+    }
+
     function contribute() external payable {
         require(
             !projectFailed && !fundingGoalReached,
             "Contribution is not allowed anymore."
         );
         require(
-            msg.value >= minimumContribution,
+            msg.value >= MINIMUM_CONTRIBUTION,
             "Value must be at least 0.01 ETH."
         );
         assert(totalFunding <= fundingGoal);
 
         contributions[msg.sender] += msg.value;
         totalFunding += msg.value;
+        _awardTier(contributions[msg.sender]);
 
         if (totalFunding >= fundingGoal) {
             fundingGoalReached = true;
