@@ -86,6 +86,7 @@ contract Project {
     }
 
     function cancelProject() external onlyOwner {
+        require(!fundingGoalReached, "Funding goal already reached");
         projectCanceledByOwner = true;
     }
 
