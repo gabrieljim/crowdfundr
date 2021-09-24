@@ -107,6 +107,9 @@ contract Project {
 
         uint256 amountToTransfer = contributions[msg.sender];
         contributions[msg.sender] = 0;
+        uint256 userTier = tierOf[msg.sender];
+        delete tierOf[msg.sender];
+        delete ownerOf[userTier];
         payable(msg.sender).transfer(amountToTransfer);
     }
 }

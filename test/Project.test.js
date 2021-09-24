@@ -176,6 +176,19 @@ describe("Project Contract", () => {
       );
     });
 
+    it("Revokes tier after withdrawing", async () => {
+      await project.contribute({ value: parseEther("0.4") });
+      await project.cancelProject();
+      await project.withdrawContribution();
+
+      const nft = await project.tierOf(owner.address);
+      expect(nft).to.be.equal("0");
+
+      expect(await project.ownerOf(nft)).to.be.equal(
+        ethers.constants.AddressZero
+      );
+    });
+
     it("Reverts if no funds are available", async () => {
       await project.contribute({ value: parseEther("1") });
       await project.cancelProject();
