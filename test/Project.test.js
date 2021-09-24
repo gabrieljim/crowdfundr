@@ -54,18 +54,30 @@ describe("Project Contract", () => {
     });
 
     describe("Awarding tiers", () => {
+      it("Returns a user their NFT id", async () => {
+        await project.contribute({ value: parseEther("1") });
+
+        const nft = await project.tierOf(owner.address);
+        expect(nft.toString()).to.not.be.equal("0");
+      });
+
       it("Awards gold tier", async () => {
         await project.contribute({ value: parseEther("1") });
 
         const tier = await project.getUserTier();
         expect(tier).to.be.equal("3");
-      });
 
+        const nft = await project.tierOf(owner.address);
+        expect(await project.ownerOf(nft)).to.be.equal(owner.address);
+      });
       it("Awards silver tier", async () => {
         await project.contribute({ value: parseEther("0.8") });
 
         const tier = await project.getUserTier();
         expect(tier).to.be.equal("2");
+
+        const nft = await project.tierOf(owner.address);
+        expect(await project.ownerOf(nft)).to.be.equal(owner.address);
       });
 
       it("Awards gold tier", async () => {
@@ -73,6 +85,9 @@ describe("Project Contract", () => {
 
         const tier = await project.getUserTier();
         expect(tier).to.be.equal("1");
+
+        const nft = await project.tierOf(owner.address);
+        expect(await project.ownerOf(nft)).to.be.equal(owner.address);
       });
     });
   });
