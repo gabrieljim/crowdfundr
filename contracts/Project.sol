@@ -10,7 +10,7 @@ contract Project {
     uint256 public deadline;
     address public owner;
     uint256 public constant MINIMUM_CONTRIBUTION = 0.01 ether;
-    bool public projectFailed;
+    bool public projectCanceledByOwner;
     bool public fundingGoalReached;
 
     mapping(address => uint256) public contributions;
@@ -30,6 +30,11 @@ contract Project {
         _;
     }
 
+    function isProjectCanceled() public view returns (bool) {
+        return ((block.timestamp > deadline && !fundingGoalReached) ||
+            projectCanceledByOwner);
+    }
+
     function _awardTier(uint256 amountContributed) internal {
         uint8 tierType = 1;
         idCounter++;
@@ -40,6 +45,9 @@ contract Project {
             tierType = 2;
         }
 
+        /*
+         * Shift the counter two bits to the left and add the tierType to the two empty 0s
+         */
         uint256 id = (idCounter << 2) | tierType;
         ownerOf[id] = msg.sender;
         tierOf[msg.sender] = id;
@@ -47,13 +55,19 @@ contract Project {
 
     function getUserTier() external view returns (uint256) {
         uint256 userTier = tierOf[msg.sender];
+
+        /*
+         * To get the first N bits of a byte, byte % 2 ** N
+         *
+         * The first two bits are the tier, so N = 2, therefore tier = userTier % 4
+         */
         uint256 awardTier = userTier % 4;
         return awardTier;
     }
 
     function contribute() external payable {
         require(
-            !projectFailed && !fundingGoalReached,
+            !isProjectCanceled() && !fundingGoalReached,
             "Contribution is not allowed anymore."
         );
         require(
@@ -72,7 +86,7 @@ contract Project {
     }
 
     function cancelProject() external onlyOwner {
-        projectFailed = true;
+        projectCanceledByOwner = true;
     }
 
     function withdrawContributedFundsOwner(uint256 amountToWithdraw)
@@ -87,7 +101,7 @@ contract Project {
     }
 
     function withdrawContribution() external {
-        require(projectFailed, "Project still going.");
+        require(isProjectCanceled(), "Project still going.");
         require(contributions[msg.sender] > 0, "No available funds");
 
         uint256 amountToTransfer = contributions[msg.sender];

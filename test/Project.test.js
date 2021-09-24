@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { parseEther } = require("ethers/lib/utils");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 
 describe("Project Contract", () => {
   let owner, addr1, addr2, addrs, project;
@@ -121,6 +121,23 @@ describe("Project Contract", () => {
   });
 
   describe("Project fails", async () => {
+    it("Fails project when 30 days pass", async () => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      const thirtyDaysFromNow = date.getTime();
+
+      await network.provider.send("evm_setNextBlockTimestamp", [
+        thirtyDaysFromNow,
+      ]);
+      await ethers.provider.send("evm_mine");
+
+      await expect(
+        project.contribute({ value: parseEther("0.1") })
+      ).to.be.revertedWith("Contribution is not allowed anymore.");
+
+      expect(await project.isProjectCanceled()).to.be.true;
+    });
+
     it("Blocks contributions", async () => {
       await project.cancelProject();
       await expect(
